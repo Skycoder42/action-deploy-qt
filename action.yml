@@ -1,0 +1,27 @@
+name: 'Deploy Qt modules'
+description: 'Upload qt modules to a server via sshfs'
+author: 'Skycoder42'
+inputs: 
+  token:
+    description: 'GitHub token for octokit'
+    required: true
+  version:
+    description: 'The Qt version to deploy for. Example: 5.13.2'
+    required: true
+  platforms:
+    description: 'A comma seperated list of platforms to deploy the module for'
+    required: true
+  host:
+    description: 'The remote host to send the data to. Should be in the format "[user@]host[:dir]"'
+    required: true
+  key:
+    description: 'The base64 encoded part of an unencrypted SSH-Key (without the "-----BEGIN/END OPENSSH PRIVATE KEY-----" parts and no newlines'
+    required: true
+  port:
+    description: 'An optional port to use for the SSH connection. If not specified, port 22 is used'
+    required: false
+    default: '22'
+runs:
+  using: 'node12'
+  main: 'lib/deploy-qt.js'
+

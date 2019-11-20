@@ -1,0 +1,34 @@
+{
+  "name": "setup-qt",
+  "version": "1.0.0",
+  "private": true,
+  "description": "setup Qt action",
+  "main": "lib/setup-qt.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Skycoder42/action-setup-qt.git"
+  },
+  "keywords": [
+    "actions",
+    "qt",
+    "setup"
+  ],
+  "author": "GitHub",
+  "license": "BSD-3-CLAUSE",
+  "dependencies": {
+    "@actions/core": "^1.0.0",
+    "@actions/exec": "^1.0.0",
+    "@actions/io": "^1.0.0",
+    "@actions/tool-cache": "^1.0.0",
+    "@actions/github": "^1.0.0",
+    "semver": "^6.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^12.12.7",
+    "@types/semver": "^6.0.0",
+    "typescript": "^3.7.2"
+  }
+}
