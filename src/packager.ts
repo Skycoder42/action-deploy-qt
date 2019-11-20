@@ -29,33 +29,25 @@ export class Packager
         core.debug(` => Using package base ${this.pkgBase}`);
     }
 
+    public async createBasePackage() {
+
+    }
+
     public async createSrcPackage() {
         core.info(" => Creating source package");
         const pkgName = this.pkgBase + ".src";
         const pkgDir = path.join(this.pwd, pkgName);
 
-        core.debug("    -> Creating meta data");
-        const qtSrc = `qt.qt5.${this.qtVersion.replace(/\./g, "")}.src`;
-        await fs.writeFile(path.join(pkgDir, "meta", "package.xml"), `<?xml version="1.0" encoding="UTF-8"?>
-<Package>
-    <Name>${pkgName}</Name>
-    <DisplayName>${this.config.config!.title} Sources</DisplayName>
-    <Version>${this.pkgVersion}</Version>
-    <ReleaseDate>${new Date().toISOString().slice(0, 10)}</ReleaseDate>
-    <Virtual>true</Virtual>
-    <AutoDependOn>${this.pkgBase}, ${qtSrc}</AutoDependOn>
-    <Dependencies>${qtSrc}</Dependencies>
-</Package>
-`);
-
         core.debug("    -> Downloading and extracting source tarball");
+        const srcPath = path.join(pkgDir, "data", this.qtVersion, "Src", this.config.config!.title.toLowerCase());
+        await io.mkdirP(srcPath);
         const release = await this.octokit.repos.getReleaseByTag({
             owner: gh.context.repo.owner,
             repo: gh.context.repo.repo,
             tag: this.pkgVersion
         });
         const srcFile = await tc.downloadTool(release.data.tarball_url);
-        const srcPath = await tc.extractTar(srcFile, this.pwd);
+        await tc.extractTar(srcFile, srcPath);
 
         core.debug("    -> Parsing deploy configuration");
         await this.config.loadConfig(path.join(srcPath, "deploy.json"));
@@ -76,5 +68,23 @@ export class Packager
         await ex.exec("perl", syncQtArgs, {
             silent: true
         });
+
+        core.debug("    -> Creating meta data");
+        const qtSrc = `qt.qt5.${this.qtVersion.replace(/\./g, "")}.src`;
+        await fs.writeFile(path.join(pkgDir, "meta", "package.xml"), `<?xml version="1.0" encoding="UTF-8"?>
+<Package>
+    <Name>${pkgName}</Name>
+    <DisplayName>${this.config.config!.title} Sources</DisplayName>
+    <Version>${this.pkgVersion}</Version>
+    <ReleaseDate>${new Date().toISOString().slice(0, 10)}</ReleaseDate>
+    <Virtual>true</Virtual>
+    <AutoDependOn>${this.pkgBase}, ${qtSrc}</AutoDependOn>
+    <Dependencies>${qtSrc}</Dependencies>
+</Package>
+`);
+    }
+
+    public async createPlatformPackage(platform: string) {
+        
     }
 }

@@ -1,5 +1,4 @@
 import * as path from 'path';
-import * as os from 'os';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
@@ -26,10 +25,14 @@ export class Deployer
 
         let config = new ConfigParser();
 
-        // download packages
-        core.info("### Downloading an preparing packages ###");
+        // download binaries and create packages
+        core.info("### Downloading an creating packages ###");
         const pkgDir = path.join(deployDir, "packages");
         await io.mkdirP(pkgDir);
         const packager = new Packager(octokit, config, pkgVersion, qtVersion, pkgDir);
+        await packager.createBasePackage();
+        await packager.createSrcPackage();
+        for (let platform of platforms.split(','))
+            await packager.createPlatformPackage(platform);
     }
 }
