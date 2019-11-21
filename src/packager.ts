@@ -217,12 +217,14 @@ Component.prototype.createOperations = function()
         core.debug("       >> Remove QMAKE_PRL_BUILD_DIR from *.prl");
         await replaceInFile({
             files: path.join(dataDir, "**", "*.prl"),
+            allowEmptyPaths: true,
             from: /^QMAKE_PRL_BUILD_DIR\s*=.*$/gm,
             to: ""
         });
         core.debug("       >> Fix dependency_libs in *.la");
         await replaceInFile({
             files: path.join(dataDir, "**", "*.la"),
+            allowEmptyPaths: true,
             from: /^dependency_libs\s*=.*$/gm,
             to: (match) => {
                 let depStr = match.split('=')[1];
@@ -238,12 +240,14 @@ Component.prototype.createOperations = function()
         core.debug("       >> Fix libdir in *.la");
         await replaceInFile({
             files: path.join(dataDir, "**", "*.la"),
+            allowEmptyPaths: true,
             from: /^libdir\s*=.*$/gm,
             to: "libdir='=/home/qt/work/install/lib'"
         });
         core.debug("       >> Fix prefix in *.pc");
         await replaceInFile({
             files: path.join(dataDir, "**", "*.pc"),
+            allowEmptyPaths: true,
             from: /^prefix\s*=.*$/gm,
             to: "prefix=/home/qt/work/install"
         });
