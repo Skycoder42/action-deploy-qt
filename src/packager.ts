@@ -326,11 +326,8 @@ Component.prototype.createOperations = function()
         await io.mkdirP(dataDir);
         if (asZip)
             await tc.extractZip(dlPath, dataDir);
-        else {
-            const newPath = dlPath + ".tar.xz";
-            await io.mv(dlPath, newPath);
-            await tc.extractTar(newPath, dataDir);
-        }
+        else 
+            await ex.exec("tar", ["x", "-C", dataDir, "-f", dlPath]);
         return dataDir;
     }
 
