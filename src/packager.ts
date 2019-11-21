@@ -9,7 +9,7 @@ import * as tc from '@actions/tool-cache'
 import * as ex from '@actions/exec';
 
 import { ConfigParser, Config } from './config';
-import { RSA_SSLV23_PADDING } from 'constants';
+import { Platforms } from './platforms';
 
 export class Packager
 {
@@ -34,6 +34,10 @@ export class Packager
         this.qtVid = this.qtVersion.replace(/\./g, "");
         this.pkgBase = `qt.qt5.${this.qtVid}.${gh.context.repo.owner.toLowerCase()}.${gh.context.repo.repo.substr(2).toLowerCase()}`;
         core.info(` => Using package base ${this.pkgBase}`);
+    }
+
+    public getPkgBase(): string {
+        return this.pkgBase;
     }
 
     public async getSources() {
@@ -94,7 +98,10 @@ export class Packager
         if (this.config!.installs) {
             let map = new Map(Object.entries(this.config!.installs));
             for (let eInfo of map) {
-                await io.cp(path.join(this.srcDlDir, eInfo[0]), path.join(dataDir, eInfo[1]));
+                await io.cp(path.join(this.srcDlDir, eInfo[0]), path.join(dataDir, eInfo[1]), {
+                    recursive: true,
+                    force: true
+                });
             }
         }
     }
@@ -133,7 +140,7 @@ export class Packager
         core.info("    -> Downloading syncqt.pl");
         const syncQt = await tc.downloadTool(`https://code.qt.io/cgit/qt/qtbase.git/plain/bin/syncqt.pl?h=${this.qtVersion}`);
         core.info("    -> Running syncqt.pl");
-        let syncQtArgs: Array<string> = [syncQt];
+        let syncQtArgs: string[] = [syncQt];
         for (let mod of this.config!.modules)
             syncQtArgs.push("-module", mod);
         syncQtArgs.push("-version", this.pkgVersion.split('-')[0]);
@@ -146,7 +153,7 @@ export class Packager
 
     public async createPlatformPackage(platform: string) {
         core.info(` => Creating ${platform} package`);
-        const pkgArch = this.packageArch(platform);
+        const pkgArch = Platforms.packagePlatform(platform);
         const pkgName = `${this.pkgBase}.${pkgArch}`;
         const pkgDir = path.join(this.pwd, pkgName);
 
@@ -194,7 +201,7 @@ Component.prototype.createOperations = function()
                             platform,
                             "@TargetDir@" + "/${this.qtVersion}/${platform}",
                             "QmakeOutputInstallerKey=" + resolveQt5EssentialsDependency(),
-                            "${this.patchString(platform)}");
+                            "${Platforms.patchString(platform)}");
 }
 `);
 
@@ -214,7 +221,7 @@ Component.prototype.createOperations = function()
             to: (match) => {
                 let depStr = match.split('=')[1];
                 depStr = depStr.substr(1, depStr.length - 2);
-                let depRes: Array<string> = ["-L/home/qt/work/install/lib"];
+                let depRes: string[] = ["-L/home/qt/work/install/lib"];
                 for (let dep of depStr.split(' ')) {
                     if (!dep.startsWith("-L"))
                         depRes.push(dep);
@@ -316,40 +323,6 @@ Component.prototype.createOperations = function()
         else
             await tc.extractTar(dlPath, dataDir);
         return dataDir;
-    }
-
-    private packageArch(platform: string): string {
-        switch (platform) {
-        case "mingw73_64":
-            return "win64_mingw73";
-        case "mingw73_32":
-            return "win32_mingw73";
-        case "msvc2017_64":
-            return "win64_msvc2017_64";
-        case "msvc2017":
-            return "win32_msvc2017";
-        case "winrt_x86_msvc2017":
-            return "win64_msvc2017_winrt_x86";
-        case "winrt_x64_msvc2017":
-            return "win64_msvc2017_winrt_x64";
-        case "winrt_armv7_msvc2017":
-            return "win64_msvc2017_winrt_armv7";
-        default:
-            return platform;
-        }
-    }
-
-    private patchString(platform: string): string {
-        const embeddedKeys: Array<string> = [
-            "android_arm64_v8a",
-            "android_armv7",
-            "android_x86",
-            "ios",
-            "winrt_x86_msvc2017",
-            "winrt_x64_msvc2017",
-            "winrt_armv7_msvc2017"
-        ];
-        return embeddedKeys.includes(platform) ? "emb-arm-qt5" : "qt5";
     }
 
     private today() {

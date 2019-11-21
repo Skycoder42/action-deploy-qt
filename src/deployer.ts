@@ -7,29 +7,11 @@ import * as ex from '@actions/exec';
 import * as gh from '@actions/github';
 
 import { Packager } from './packager';
+import { Uploader } from './uploader';
+import { Platforms } from './platforms';
 
 export class Deployer
 {
-    private platforms: Array<string> = [
-        "gcc_64",
-        "android_arm64_v8a",
-        "android_x86_64",
-        "android_armv7",
-        "android_x86",
-        "wasm_32",
-        "msvc2017_64",
-        "msvc2017",
-        "winrt_x64_msvc2017",
-        "winrt_x86_msvc2017",
-        "winrt_armv7_msvc2017",
-        "mingw73_64",
-        "mingw73_32",
-        "clang_64",
-        "ios",
-        "doc",
-        "examples"
-    ];
-
     public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string) {
         // prepare
         const refs = gh.context.ref.split('/');
@@ -43,10 +25,10 @@ export class Deployer
         core.info(` => Detected Package version as ${pkgVersion}`);
 
         // run
-        const packages = await this.createPackages(token, pkgVersion, qtVersion, excludes);
+        const [pkgBase, pkgDir] = await this.createPackages(token, pkgVersion, qtVersion, excludes);
         const repogen = await this.downloadRepogen();
         const deployDir = "dummy-deploy";
-        await this.generateRepositories(repogen, packages, deployDir);
+        await this.generateRepositories(repogen, qtVersion, pkgBase, pkgDir, deployDir, excludes);
     }
 
     private async downloadRepogen(): Promise<string> {
@@ -68,7 +50,7 @@ export class Deployer
         return repogen;
     }
 
-    private async createPackages(token: string, pkgVersion: string, qtVersion: string, excludes: string): Promise<string> {
+    private async createPackages(token: string, pkgVersion: string, qtVersion: string, excludes: string): Promise<[string, string]> {
         core.info("### Downloading an creating packages ###");
         const octokit = new gh.GitHub(token);
         const pkgDir = "packages";
@@ -76,12 +58,11 @@ export class Deployer
         const packager = new Packager(octokit, pkgVersion, qtVersion, pkgDir);
         await packager.getSources();
         await packager.createBasePackage();
-        if (!"src".match(excludes))
-            await packager.createSrcPackage();
-        for (let platform of this.platforms) {
-            if (platform.match(excludes))
-                continue;
+        for (let platform of Platforms.platforms(excludes)) {
             switch (platform) {
+            case "src":
+                await packager.createSrcPackage();
+                break;
             case "doc":
                 await packager.createDocPackage();
                 break;
@@ -93,10 +74,14 @@ export class Deployer
                 break;
             }
         }
-        return pkgDir;
+        return [packager.getPkgBase(), pkgDir];
     }
 
-    private async generateRepositories(repogen: string, pkgDir: string, deployDir: string) {
-
+    private async generateRepositories(repogen: string, qtVersion: string, pkgBase: string, pkgDir: string, deployDir: string, excludes: string) {
+        core.info("### Generating and uploading repositories ###");
+        const uploader = new Uploader(repogen, qtVersion, pkgBase, pkgDir, deployDir);
+        uploader.generateRepos("linux", "x64", Platforms.linuxPlatforms(excludes));
+        uploader.generateRepos("windows", "x86", Platforms.windowsPlatforms(excludes));
+        uploader.generateRepos("mac", "x64", Platforms.macosPlatforms(excludes));
     }
 }

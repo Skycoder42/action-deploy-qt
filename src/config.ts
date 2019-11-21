@@ -14,11 +14,11 @@ export interface Config
 {
     title: string;
     description: string
-    modules: Array<string>
+    modules: string[]
     license: License
-    dependencies: Array<string> | null,
+    dependencies: string[] | null,
     installs: Installs | null
-    hostbuilds: Array<string> | null
+    hostbuilds: string[] | null
 }
 
 export class ConfigParser
