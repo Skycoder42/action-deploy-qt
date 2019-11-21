@@ -8,36 +8,22 @@ import * as gh from '@actions/github';
 import * as tc from '@actions/tool-cache'
 import * as ex from '@actions/exec';
 
-import { ConfigParser, Config } from './config';
+import { ConfigParser, Config, PackageConfig } from './config';
 import { Platforms } from './platforms';
 
 export class Packager
 {
     private octokit: gh.GitHub;
-    private pkgVersion: string;
-    private qtVersion: string;
-    private pwd: string;
-
-    private qtVid: string;
-    private pkgBase: string;
+    private pkgDir: string;
+    private config: PackageConfig;
 
     private srcDlDir: string = "";
-    private config: Config | null = null;
     private assets: Map<string, string> = new Map();
 
-    public constructor(octokit: gh.GitHub, pkgVersion: string, qtVersion: string, pwd: string) {
+    public constructor(octokit: gh.GitHub, pkgDir: string, config: PackageConfig) {
         this.octokit = octokit;
-        this.pkgVersion = pkgVersion;
-        this.qtVersion = qtVersion;
-        this.pwd = pwd;
-
-        this.qtVid = this.qtVersion.replace(/\./g, "");
-        this.pkgBase = `qt.qt5.${this.qtVid}.${gh.context.repo.owner.toLowerCase()}.${gh.context.repo.repo.substr(2).toLowerCase()}`;
-        core.info(` => Using package base ${this.pkgBase}`);
-    }
-
-    public getPkgBase(): string {
-        return this.pkgBase;
+        this.pkgDir = pkgDir;
+        this.config = config;
     }
 
     public async getSources() {
@@ -46,7 +32,7 @@ export class Packager
         const release = await this.octokit.repos.getReleaseByTag({
             owner: gh.context.repo.owner,
             repo: gh.context.repo.repo,
-            tag: this.pkgVersion
+            tag: this.config.pkgVersion
         });
         const srcFile = await tc.downloadTool(release.data.tarball_url);
         core.info("    -> Extracting source tarball");
@@ -55,19 +41,39 @@ export class Packager
             this.assets.set(asset.name, asset.browser_download_url);
 
         core.info("    -> Parsing deploy configuration");
-        this.config = await ConfigParser.loadConfig(path.join(this.srcDlDir, "deploy.json"));
+        this.config.config = await ConfigParser.loadConfig(path.join(this.srcDlDir, "deploy.json"));
+    }
+
+    public async createAllPackages(platforms: string[]) {
+        await this.createBasePackage();
+        for (let platform of platforms) {
+            switch (platform) {
+            case "src":
+                await this.createSrcPackage();
+                break;
+            case "doc":
+                await this.createDocPackage();
+                break;
+            case "examples":
+                await this.createExamplePackage();
+                break;
+            default:
+                await this.createPlatformPackage(platform);
+                break;
+            }
+        }
     }
 
     public async createBasePackage() {
         core.info(" => Creating base package");
-        const pkgDir = path.join(this.pwd, this.pkgBase);
+        const pkgDir = path.join(this.pkgDir, this.config.pkgBase);
 
         core.info("    -> Creating meta package.xml");
         let depList: Array<string> = [];
-        if (this.config!.dependencies) {
-            for (let dep of this.config!.dependencies) {
+        if (this.config.config!.dependencies) {
+            for (let dep of this.config.config!.dependencies) {
                 if (dep.startsWith("."))
-                    depList.push(`qt.qt5.${this.qtVid}${dep}`);
+                    depList.push(`qt.qt5.${this.config.qtVid}${dep}`);
                 else
                     depList.push(dep);
             }
@@ -76,27 +82,27 @@ export class Packager
         await io.mkdirP(metaDir);
         await fs.writeFile(path.join(metaDir, "package.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <Package>
-    <Name>${this.pkgBase}</Name>
-    <DisplayName>${this.config!.title}</DisplayName>
-    <Description>${this.config!.description}</Description>
+    <Name>${this.config.pkgBase}</Name>
+    <DisplayName>${this.config.config!.title}</DisplayName>
+    <Description>${this.config.config!.description}</Description>
     <Dependencies>${depList.join(", ")}</Dependencies>
-    <Version>${this.pkgVersion}</Version>
+    <Version>${this.config.pkgVersion}</Version>
     <ReleaseDate>${this.today()}</ReleaseDate>
     <Licenses>
-        <License name="${this.config!.license.name}" file="LICENSE.txt" />
+        <License name="${this.config.config!.license.name}" file="LICENSE.txt" />
     </Licenses>
     <Default>true</Default>
 </Package>
 `);
 
         core.info("    -> Adding license");
-        await io.cp(path.join(this.srcDlDir, this.config!.license.path), path.join(metaDir, "LICENSE.txt"));
+        await io.cp(path.join(this.srcDlDir, this.config.config!.license.path), path.join(metaDir, "LICENSE.txt"));
 
         core.info("    -> Adding additional global files");
         const dataDir = path.join(pkgDir, "data");
         await io.mkdirP(dataDir);
-        if (this.config!.installs) {
-            let map = new Map(Object.entries(this.config!.installs));
+        if (this.config.config!.installs) {
+            let map = new Map(Object.entries(this.config.config!.installs));
             for (let eInfo of map) {
                 await io.cp(path.join(this.srcDlDir, eInfo[0]), path.join(dataDir, eInfo[1]), {
                     recursive: true,
@@ -108,21 +114,21 @@ export class Packager
 
     public async createSrcPackage() {
         core.info(" => Creating source package");
-        const pkgName = this.pkgBase + ".src";
-        const pkgDir = path.join(this.pwd, pkgName);
+        const pkgName = this.config.pkgBase + ".src";
+        const pkgDir = path.join(this.pkgDir, pkgName);
 
         core.info("    -> Creating meta package.xml");
-        const qtSrc = `qt.qt5.${this.qtVid}.src`;
+        const qtSrc = `qt.qt5.${this.config.qtVid}.src`;
         const metaDir = path.join(pkgDir, "meta");
         await io.mkdirP(metaDir);
         await fs.writeFile(path.join(metaDir, "package.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <Package>
     <Name>${pkgName}</Name>
-    <DisplayName>${this.config!.title} Sources</DisplayName>
-    <Version>${this.pkgVersion}</Version>
+    <DisplayName>${this.config.config!.title} Sources</DisplayName>
+    <Version>${this.config.pkgVersion}</Version>
     <ReleaseDate>${this.today()}</ReleaseDate>
     <Virtual>true</Virtual>
-    <AutoDependOn>${this.pkgBase}, ${qtSrc}</AutoDependOn>
+    <AutoDependOn>${this.config.pkgBase}, ${qtSrc}</AutoDependOn>
     <Dependencies>${qtSrc}</Dependencies>
 </Package>
 `);
@@ -132,18 +138,18 @@ export class Packager
         await io.rmRF(path.join(this.srcDlDir, "deploy.json"));
 
         core.info("    -> Moving sources into package directory");
-        const srcBasePath = path.join(pkgDir, "data", this.qtVersion, "Src");
+        const srcBasePath = path.join(pkgDir, "data", this.config.qtVersion, "Src");
         await io.mkdirP(srcBasePath);
-        const srcPath = path.join(srcBasePath, this.config!.title.toLowerCase());
+        const srcPath = path.join(srcBasePath, this.config.config!.title.toLowerCase());
         await io.mv(this.srcDlDir, srcPath);
 
         core.info("    -> Downloading syncqt.pl");
-        const syncQt = await tc.downloadTool(`https://code.qt.io/cgit/qt/qtbase.git/plain/bin/syncqt.pl?h=${this.qtVersion}`);
+        const syncQt = await tc.downloadTool(`https://code.qt.io/cgit/qt/qtbase.git/plain/bin/syncqt.pl?h=${this.config.qtVersion}`);
         core.info("    -> Running syncqt.pl");
         let syncQtArgs: string[] = [syncQt];
-        for (let mod of this.config!.modules)
+        for (let mod of this.config.config!.modules)
             syncQtArgs.push("-module", mod);
-        syncQtArgs.push("-version", this.pkgVersion.split('-')[0]);
+        syncQtArgs.push("-version", this.config.pkgVersion.split('-')[0]);
         syncQtArgs.push("-out", srcPath);
         syncQtArgs.push(srcPath);
         await ex.exec("perl", syncQtArgs, {
@@ -154,21 +160,21 @@ export class Packager
     public async createPlatformPackage(platform: string) {
         core.info(` => Creating ${platform} package`);
         const pkgArch = Platforms.packagePlatform(platform);
-        const pkgName = `${this.pkgBase}.${pkgArch}`;
-        const pkgDir = path.join(this.pwd, pkgName);
+        const pkgName = `${this.config.pkgBase}.${pkgArch}`;
+        const pkgDir = path.join(this.pkgDir, pkgName);
 
         core.info("    -> Creating meta package.xml");
-        const qtPkg = `qt.qt5.${this.qtVid}.${pkgArch}`;
+        const qtPkg = `qt.qt5.${this.config.qtVid}.${pkgArch}`;
         const metaDir = path.join(pkgDir, "meta");
         await io.mkdirP(metaDir);
         await fs.writeFile(path.join(metaDir, "package.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <Package>
     <Name>${pkgName}</Name>
-    <DisplayName>${this.config!.title} for ${pkgArch}</DisplayName>
-    <Version>${this.pkgVersion}</Version>
+    <DisplayName>${this.config.config!.title} for ${pkgArch}</DisplayName>
+    <Version>${this.config.pkgVersion}</Version>
     <ReleaseDate>${this.today()}</ReleaseDate>
     <Virtual>true</Virtual>
-    <AutoDependOn>${this.pkgBase}, ${qtPkg}</AutoDependOn>
+    <AutoDependOn>${this.config.pkgBase}, ${qtPkg}</AutoDependOn>
     <Dependencies>${qtPkg}</Dependencies>
     <Script>installscript.qs</Script>
 </Package>
@@ -199,13 +205,13 @@ Component.prototype.createOperations = function()
 
     component.addOperation("QtPatch",
                             platform,
-                            "@TargetDir@" + "/${this.qtVersion}/${platform}",
+                            "@TargetDir@" + "/${this.config.qtVersion}/${platform}",
                             "QmakeOutputInstallerKey=" + resolveQt5EssentialsDependency(),
                             "${Platforms.patchString(platform)}");
 }
 `);
 
-        const dataDir = await this.getAsset(platform, pkgDir, this.qtVersion);
+        const dataDir = await this.getAsset(platform, pkgDir, this.config.qtVersion);
 
         core.info ("    -> Fixing configuration paths");
         core.debug("       >> Remove QMAKE_PRL_BUILD_DIR from *.prl");
@@ -245,21 +251,21 @@ Component.prototype.createOperations = function()
 
     public async createDocPackage() {
         core.info(` => Creating documentation package`);
-        const pkgName = `${this.pkgBase}.doc`;
-        const pkgDir = path.join(this.pwd, pkgName);
+        const pkgName = `${this.config.pkgBase}.doc`;
+        const pkgDir = path.join(this.pkgDir, pkgName);
 
         core.info("    -> Creating meta package.xml");
-        const qtDoc = `qt.qt5.${this.qtVid}.doc`;
+        const qtDoc = `qt.qt5.${this.config.qtVid}.doc`;
         const metaDir = path.join(pkgDir, "meta");
         await io.mkdirP(metaDir);
         await fs.writeFile(path.join(metaDir, "package.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <Package>
     <Name>${pkgName}</Name>
-    <DisplayName>${this.config!.title} Documentation</DisplayName>
-    <Version>${this.pkgVersion}</Version>
+    <DisplayName>${this.config.config!.title} Documentation</DisplayName>
+    <Version>${this.config.pkgVersion}</Version>
     <ReleaseDate>${this.today()}</ReleaseDate>
     <Virtual>true</Virtual>
-    <AutoDependOn>${this.pkgBase}, ${qtDoc}</AutoDependOn>
+    <AutoDependOn>${this.config.pkgBase}, ${qtDoc}</AutoDependOn>
     <Dependencies>${qtDoc}, qt.tools</Dependencies>
     <Script>installscript.qs</Script>
 </Package>
@@ -275,7 +281,7 @@ Component.prototype.createOperations = function()
 {
     component.createOperations();
     if (typeof registerQtCreatorDocumentation === "function")
-        registerQtCreatorDocumentation(component, "/Docs/Qt-${this.qtVersion}/");
+        registerQtCreatorDocumentation(component, "/Docs/Qt-${this.config.qtVersion}/");
 }
 `);
 
@@ -284,21 +290,21 @@ Component.prototype.createOperations = function()
 
     public async createExamplePackage() {
         core.info(` => Creating examples package`);
-        const pkgName = `${this.pkgBase}.examples`;
-        const pkgDir = path.join(this.pwd, pkgName);
+        const pkgName = `${this.config.pkgBase}.examples`;
+        const pkgDir = path.join(this.pkgDir, pkgName);
 
         core.info("    -> Creating meta package.xml");
-        const qtExamples = `qt.qt5.${this.qtVid}.examples`;
+        const qtExamples = `qt.qt5.${this.config.qtVid}.examples`;
         const metaDir = path.join(pkgDir, "meta");
         await io.mkdirP(metaDir);
         await fs.writeFile(path.join(metaDir, "package.xml"), `<?xml version="1.0" encoding="UTF-8"?>
 <Package>
     <Name>${pkgName}</Name>
-    <DisplayName>${this.config!.title} Examples</DisplayName>
-    <Version>${this.pkgVersion}</Version>
+    <DisplayName>${this.config.config!.title} Examples</DisplayName>
+    <Version>${this.config.pkgVersion}</Version>
     <ReleaseDate>${this.today()}</ReleaseDate>
     <Virtual>true</Virtual>
-    <AutoDependOn>${this.pkgBase}, ${qtExamples}</AutoDependOn>
+    <AutoDependOn>${this.config.pkgBase}, ${qtExamples}</AutoDependOn>
     <Dependencies>${qtExamples}</Dependencies>
 </Package>
 `);
@@ -309,7 +315,7 @@ Component.prototype.createOperations = function()
     private async getAsset(platform: string, pkgDir: string, subDir: string): Promise<string> {
         core.info("    -> Downloading asset");
         const asZip = platform.includes("msvc") || platform.includes("mingw");
-        const assetName = `${this.config!.title.toLowerCase()}-${platform}-${this.qtVersion}.${asZip ? "zip" : "tar.xz"}`;
+        const assetName = `${this.config.config!.title.toLowerCase()}-${platform}-${this.config.qtVersion}.${asZip ? "zip" : "tar.xz"}`;
         const assetUrl = this.assets.get(assetName);
         if (typeof assetUrl == "undefined")
             throw Error(`No such asset: ${assetName}`);
@@ -320,8 +326,11 @@ Component.prototype.createOperations = function()
         await io.mkdirP(dataDir);
         if (asZip)
             await tc.extractZip(dlPath, dataDir);
-        else
-            await tc.extractTar(dlPath, dataDir);
+        else {
+            const newPath = dlPath + ".tar.xz";
+            await io.mv(dlPath, newPath);
+            await tc.extractTar(newPath, dataDir);
+        }
         return dataDir;
     }
 

@@ -2,8 +2,8 @@ import { promises as fs } from 'fs';
 
 export interface License
 {
-    name: string,
-    path: string
+    name: string;
+    path: string;
 }
 
 export interface Installs {
@@ -13,12 +13,21 @@ export interface Installs {
 export interface Config
 {
     title: string;
-    description: string
-    modules: string[]
-    license: License
-    dependencies: string[] | null,
-    installs: Installs | null
-    hostbuilds: string[] | null
+    description: string;
+    modules: string[];
+    license: License;
+    dependencies: string[] | null;
+    installs: Installs | null;
+    hostbuilds: string[] | null;
+}
+
+export interface PackageConfig
+{
+    pkgVersion: string;
+    qtVersion: string;
+    qtVid: string;
+    pkgBase: string;
+    config: Config | null;
 }
 
 export class ConfigParser
