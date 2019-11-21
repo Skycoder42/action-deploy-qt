@@ -1,4 +1,6 @@
 import * as path from 'path';
+import * as fs from 'fs';
+import * as glob from 'glob';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
@@ -21,19 +23,23 @@ export class Uploader
         this.config = config;
     }
 
-    public async generateRepos(host: string, arch: string, packages: string[]) {
+    public async generateRepos(host: string, arch: string, platforms: string[]) {
         const fullHost = `${host}_${arch}`;
         core.info(` => Deploying for ${fullHost}`);
 
-        // TODO prepare hostbuilds
+        if (this.config.config!.hostbuilds) {
+            const pHost = Platforms.hostToolPlatform(host, platforms);
+            for (let platform of platforms)
+                await this.prepareHostTools(host, platform, this.config.config!.hostbuilds, pHost);
+        }
 
         core.info("    -> Generating repositories");
         const realDepDir = path.join(this.deployDir, fullHost, `qt${this.config.qtVersion.replace(/\./g, "")}`);
         await io.mkdirP(realDepDir);
         let pkgList: string[] = [this.config.pkgBase];
         core.debug(`       >> Adding package ${this.config.pkgBase}`);
-        for (let pkg of packages) {
-            const dPkg = `${this.config.pkgBase}.${Platforms.packagePlatform(pkg)}`;
+        for (let platform of platforms) {
+            const dPkg = `${this.config.pkgBase}.${Platforms.packagePlatform(platform)}`;
             core.debug(`       >> Adding package ${dPkg}`);
             pkgList.push(dPkg);
         }
@@ -47,7 +53,49 @@ export class Uploader
         ]);
     }
 
-    private async prepareHostTools() {
+    private async prepareHostTools(host: string, platform: string, tools: string[], hostPlatform: string) {
+        core.info(`    -> Adjusting host tools for ${platform}`);
+        core.debug(`       >> Using host tool from ${hostPlatform}`);
+        const pkgPlatform = Platforms.packagePlatform(platform);
+        const pkgHostPlatform = Platforms.packagePlatform(hostPlatform);
+        
+        const srcDir = path.join(this.pkgDir, `qt.qt5.${this.config.qtVid}.${pkgHostPlatform}`, "data");
+        const destDir = path.join(this.pkgDir, `qt.qt5.${this.config.qtVid}.${pkgPlatform}`, "data");
+        const bkpDir = destDir + ".bkp";
 
+        if (!fs.existsSync(bkpDir)) {
+            core.debug("       >> Create original data backup");
+            await io.cp(destDir, bkpDir, {
+                recursive: true,
+                force: true
+            });
+        } else {
+            core.debug("       >> Restoring from original data backup");
+            await io.rmRF(destDir);
+            await io.cp(bkpDir, destDir, {
+                recursive: true,
+                force: true
+            });
+        }
+
+        const toolHost = Platforms.hostOs(platform);
+        if (toolHost && toolHost != host)
+            core.debug("       >> Using original host build");
+        else {
+            for (let tool of tools) {
+                for (let binary of glob.sync(path.join(destDir, tool))) {
+                    await io.rmRF(binary);
+                    core.debug(`       >> Removed matching binary ${path.relative(destDir, binary)}`);
+                }
+                for (let binary of glob.sync(path.join(srcDir, tool))) {
+                    const relPath = path.relative(srcDir, binary);
+                    await io.cp(binary, path.join(destDir, relPath), {
+                        recursive: true,
+                        force: true
+                    });
+                    core.debug(`       >> Copied matching binary ${relPath}`);
+                }
+            }
+        }
     }
 }

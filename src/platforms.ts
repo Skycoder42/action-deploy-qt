@@ -89,6 +89,40 @@ export class Platforms {
         return embeddedKeys.includes(platform) ? "emb-arm-qt5" : "qt5";
     }
 
+    public static hostToolPlatform(os: string, platforms: string[]): string {
+        let matchP: string[];
+        switch (os) {
+        case "linux":
+            matchP = platforms.filter((platform) => platform.includes("android") || platform.includes("wasm"));
+            break;
+        case "windows":
+            matchP = platforms.filter((platform) => platform.includes("winrt"));
+            break;
+        case "mac":
+            matchP = platforms.filter((platform) => platform.includes("ios"));
+            break;
+        default:
+            throw Error(`Unsupported os: ${os}`);
+        }
+
+        if (matchP.length == 0)
+            throw Error(`None of the provided packages provides host tools for ${os}`);
+        
+        return matchP[0];
+    }
+
+    public static hostOs(platform: string): string | null {
+        if (platform.includes("android") ||
+            platform.includes("wasm"))
+            return "linux";
+        else if (platform.includes("winrt"))
+            return "windows";
+        else if (platform.includes("ios"))
+            return "mac";
+        else
+            return null;
+    }
+
     private static isBasic(platform: string): boolean {
         return platform == "src" ||
                platform == "doc" ||
