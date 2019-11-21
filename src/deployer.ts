@@ -28,7 +28,10 @@ export class Deployer
         "examples"
     ];
 
-    public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string)  {
+    public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string) {
+        // install deps
+        
+
         // prepare
         const octokit = new gh.GitHub(token);
         const deployDir = "qt-deploy";

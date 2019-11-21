@@ -46,7 +46,7 @@ export class Packager
         });
         const srcFile = await tc.downloadTool(release.data.tarball_url);
         core.info("    -> Extracting source tarball");
-        this.srcDlDir = path.join(await tc.extractTar(srcFile), `${gh.context.repo.owner}-${gh.context.repo.repo}-${gh.context.sha.substr(7)}`);
+        this.srcDlDir = path.join(await tc.extractTar(srcFile), `${gh.context.repo.owner}-${gh.context.repo.repo}-${gh.context.sha.substr(0, 7)}`);
         for (let asset of release.data.assets)
             this.assets.set(asset.name, asset.browser_download_url);
 
