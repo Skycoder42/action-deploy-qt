@@ -1,7 +1,9 @@
 import * as path from 'path';
+import * as fs from 'fs';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
+import * as ex from '@actions/exec';
 import * as gh from '@actions/github';
 
 import { Packager } from './packager';
@@ -29,12 +31,7 @@ export class Deployer
     ];
 
     public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string) {
-        // install deps
-        
-
         // prepare
-        const octokit = new gh.GitHub(token);
-        const deployDir = "qt-deploy";
         const refs = gh.context.ref.split('/');
         if (refs.length != 3)
             throw Error(`Unexpected GitHub ref format: ${gh.context.ref}`);
@@ -45,9 +42,36 @@ export class Deployer
         const pkgVersion = refs[2];
         core.info(` => Detected Package version as ${pkgVersion}`);
 
-        // download binaries and create packages
+        // run
+        const repogen = await this.downloadRepogen();
+        const packages = await this.createPackages(token, pkgVersion, qtVersion, excludes);
+        const deployDir = "dummy-deploy";
+        await this.generateRepositories(repogen, packages, deployDir);
+    }
+
+    private async downloadRepogen(): Promise<string> {
+        core.info(` => Getting QtIFW repogen`);
+        core.info("    -> Installing aqtinstall");
+        const python = await io.which("python", true);
+        await ex.exec(python, ["-m", "pip", "install", "aqtinstall"]);
+        const qtIfwVer = "3.1.1";
+        core.info(`    -> Installing QtIfW verion ${qtIfwVer}`);
+        await ex.exec(python, ["-m", "aqt",
+            "tool",
+            "linux", "tools_ifw", qtIfwVer, "qt.tools.ifw.31",
+            "--outputdir", "qtifw",
+            "--internal"
+        ]);
+        const repogen = path.join("qtifw", "Tools", "QtInstallerFramework", "3.1", "bin", "repogen");
+        if (!fs.existsSync(repogen))
+            throw Error(`Unable to find repogen after aqt install with path: ${repogen}`);
+        return repogen;
+    }
+
+    private async createPackages(token: string, pkgVersion: string, qtVersion: string, excludes: string): Promise<string> {
         core.info("### Downloading an creating packages ###");
-        const pkgDir = path.join(deployDir, "packages");
+        const octokit = new gh.GitHub(token);
+        const pkgDir = "packages";
         await io.mkdirP(pkgDir);
         const packager = new Packager(octokit, pkgVersion, qtVersion, pkgDir);
         await packager.getSources();
@@ -69,5 +93,10 @@ export class Deployer
                 break;
             }
         }
+        return pkgDir;
+    }
+
+    private async generateRepositories(repogen: string, pkgDir: string, deployDir: string) {
+
     }
 }

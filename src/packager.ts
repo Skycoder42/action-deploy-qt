@@ -92,8 +92,10 @@ export class Packager
         const dataDir = path.join(pkgDir, "data");
         await io.mkdirP(dataDir);
         if (this.config!.installs) {
-            for (let eInfo of this.config!.installs)
+            let map = new Map(Object.entries(this.config!.installs));
+            for (let eInfo of map) {
                 await io.cp(path.join(this.srcDlDir, eInfo[0]), path.join(dataDir, eInfo[1]));
+            }
         }
     }
 

@@ -13,7 +13,7 @@ export interface Config
     modules: Array<string>
     license: License
     dependencies: Array<string> | null,
-    installs: Map<string, string> | null
+    installs: object | null
     hostbuilds: Array<string> | null
 }
 
