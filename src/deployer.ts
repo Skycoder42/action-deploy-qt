@@ -4,8 +4,8 @@ import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as gh from '@actions/github';
 
+import { Config } from './config';
 import { Packager } from './packager';
-import { ConfigParser } from './configparser';
 
 export class Deployer
 {
@@ -21,18 +21,28 @@ export class Deployer
             return;
         }
         const pkgVersion = refs[2];
-        core.info(`Detected Package version as ${pkgVersion}`);
-
-        let config = new ConfigParser();
+        core.info(` => Detected Package version as ${pkgVersion}`);
 
         // download binaries and create packages
         core.info("### Downloading an creating packages ###");
         const pkgDir = path.join(deployDir, "packages");
         await io.mkdirP(pkgDir);
-        const packager = new Packager(octokit, config, pkgVersion, qtVersion, pkgDir);
+        const packager = new Packager(octokit, pkgVersion, qtVersion, pkgDir);
+        await packager.getSources();
         await packager.createBasePackage();
         await packager.createSrcPackage();
-        for (let platform of platforms.split(','))
-            await packager.createPlatformPackage(platform);
+        for (let platform of platforms.split(',')) {
+            switch (platform) {
+            case "doc":
+                await packager.createDocPackage();
+                break;
+            case "examples":
+                await packager.createExamplePackage();
+                break;
+            default:
+                await packager.createPlatformPackage(platform);
+                break;
+            }
+        }
     }
 }

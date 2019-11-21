@@ -13,16 +13,14 @@ export interface Config
     modules: Array<string>
     license: License
     dependencies: Array<string> | null,
-    extraInstall: Map<string, string> | null
+    installs: Map<string, string> | null
     hostbuilds: Array<string> | null
 }
 
 export class ConfigParser
 {
-    public config: Config | null = null;
-
-    public async loadConfig(path: string) {
+    public static async loadConfig(path: string): Promise<Config> {
         const textBuf = await fs.readFile(path);
-        this.config = JSON.parse(textBuf.toString());
+        return JSON.parse(textBuf.toString());
     }
 }
