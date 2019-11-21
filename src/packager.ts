@@ -329,7 +329,7 @@ Component.prototype.createOperations = function()
         const dataDir = path.join(pkgDir, "data", subDir);
         await io.mkdirP(dataDir);
         if (asZip)
-            await tc.extractZip(dlPath, dataDir);
+            await ex.exec("unzip", ["-qq", dlPath, "-d", dataDir]);
         else 
             await ex.exec("tar", ["x", "-C", dataDir, "-f", dlPath]);
         return dataDir;
