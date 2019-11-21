@@ -10,6 +10,7 @@ import { Packager } from './packager';
 import { Uploader } from './uploader';
 import { Platforms } from './platforms';
 import { PackageConfig } from './config';
+import { Sshfs } from './sshfs';
 
 export class Deployer
 {
@@ -41,6 +42,12 @@ export class Deployer
         uploader.generateRepos("linux", "x64", Platforms.linuxPlatforms(excludes));
         uploader.generateRepos("windows", "x86", Platforms.windowsPlatforms(excludes));
         uploader.generateRepos("mac", "x64", Platforms.macosPlatforms(excludes));
+
+        core.info("### Mounting remote fs ###");
+        const sshfs = new Sshfs(this.deployDir + "-test");
+        await sshfs.init();
+        await sshfs.mount(host, key, port);
+        await sshfs.unmount();
     }
 
     private createPackageConfig(qtVersion: string): PackageConfig | null {
