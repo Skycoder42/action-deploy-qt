@@ -31,11 +31,6 @@ export class Deployer
     ];
 
     public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string) {
-        core.info(process.cwd());
-        core.info(String(process.env.GITHUB_WORKSPACE));
-        process.chdir("..");
-        core.info(process.cwd());
-
         // prepare
         const refs = gh.context.ref.split('/');
         if (refs.length != 3)
@@ -48,8 +43,8 @@ export class Deployer
         core.info(` => Detected Package version as ${pkgVersion}`);
 
         // run
-        const repogen = await this.downloadRepogen();
         const packages = await this.createPackages(token, pkgVersion, qtVersion, excludes);
+        const repogen = await this.downloadRepogen();
         const deployDir = "dummy-deploy";
         await this.generateRepositories(repogen, packages, deployDir);
     }
