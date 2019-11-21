@@ -7,7 +7,7 @@ async function run() {
 		const deployer = new Deployer();
 		await deployer.run(core.getInput('token'),
 						   core.getInput('version'),
-						   core.getInput('platforms'),
+						   core.getInput('excludes'),
 						   core.getInput('host'),
 						   core.getInput('key'),
 						   core.getInput('port'));

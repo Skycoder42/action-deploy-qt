@@ -4,12 +4,31 @@ import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as gh from '@actions/github';
 
-import { Config } from './config';
 import { Packager } from './packager';
 
 export class Deployer
 {
-    public async run(token: string, qtVersion: string, platforms: string, host: string, key: string, port: string)  {
+    private platforms: Array<string> = [
+        "gcc_64",
+        "android_arm64_v8a",
+        "android_x86_64",
+        "android_armv7",
+        "android_x86",
+        "wasm_32",
+        "msvc2017_64",
+        "msvc2017",
+        "winrt_x64_msvc2017",
+        "winrt_x86_msvc2017",
+        "winrt_armv7_msvc2017",
+        "mingw73_64",
+        "mingw73_32",
+        "clang_64",
+        "ios",
+        "doc",
+        "examples"
+    ];
+
+    public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string)  {
         // prepare
         const octokit = new gh.GitHub(token);
         const deployDir = "qt-deploy";
@@ -30,8 +49,11 @@ export class Deployer
         const packager = new Packager(octokit, pkgVersion, qtVersion, pkgDir);
         await packager.getSources();
         await packager.createBasePackage();
-        await packager.createSrcPackage();
-        for (let platform of platforms.split(',')) {
+        if (!"src".match(excludes))
+            await packager.createSrcPackage();
+        for (let platform of this.platforms) {
+            if (platform.match(excludes))
+                continue;
             switch (platform) {
             case "doc":
                 await packager.createDocPackage();
