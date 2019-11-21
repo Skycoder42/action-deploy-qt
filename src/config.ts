@@ -6,6 +6,10 @@ export interface License
     path: string
 }
 
+export interface Installs {
+    [key: string]: string;
+}
+
 export interface Config
 {
     title: string;
@@ -13,7 +17,7 @@ export interface Config
     modules: Array<string>
     license: License
     dependencies: Array<string> | null,
-    installs: object | null
+    installs: Installs | null
     hostbuilds: Array<string> | null
 }
 

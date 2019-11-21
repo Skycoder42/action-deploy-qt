@@ -31,6 +31,11 @@ export class Deployer
     ];
 
     public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string) {
+        core.info(process.cwd());
+        core.info(String(process.env.GITHUB_WORKSPACE));
+        process.chdir("..");
+        core.info(process.cwd());
+
         // prepare
         const refs = gh.context.ref.split('/');
         if (refs.length != 3)
