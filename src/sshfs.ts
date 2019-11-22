@@ -35,7 +35,7 @@ export class Sshfs
         ];
         if (port)
             sshfsArgs.push("-P", port);
-        await ex.exec(sshfs, sshfsArgs, {silent: true});
+        await ex.exec(sshfs, sshfsArgs);
     }
 
     public async unmount() {

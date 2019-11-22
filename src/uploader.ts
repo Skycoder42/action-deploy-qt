@@ -45,7 +45,7 @@ export class Uploader
             "-p", this.pkgDir,
             "-i", pkgList.join(","),
             realDepDir
-        ]);
+        ], {silent: true});
     }
 
     private async prepareHostTools(host: string, platform: string, tools: string[], hostPlatform: string) {

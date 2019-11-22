@@ -155,7 +155,7 @@ export class Packager
                 "-version", this.config.pkgVersion.split('-')[0],
                 "-outdir", srcPath,
                 srcPath
-            ]);
+            ], {silent: true});
         }
     }
 
