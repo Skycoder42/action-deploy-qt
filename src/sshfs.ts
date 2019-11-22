@@ -1,5 +1,6 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
+import * as util from 'util';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
@@ -23,13 +24,12 @@ export class Sshfs
         // write key and config
         core.info("    -> writing keyfile");
         const sshKey = path.join(String(process.env.GITHUB_WORKSPACE), "ssh-key");
-        await fs.writeFile(sshKey, key);
-        await fs.chmod(sshKey, 0o600);
+        await fs.writeFile(sshKey, key, {mode: 0o600});
+        core.debug(util.inspect(await fs.lstat(sshKey), {depth: Infinity, colors: true}));
 
         // mount
         core.info("    -> Mounting");
         const sshfs = await io.which("sshfs", true);
-        await ex.exec("cat", [sshKey]);
         let sshfsArgs: string[] = [
             host, this.mountPath,
             "-o", "StrictHostKeyChecking=no",

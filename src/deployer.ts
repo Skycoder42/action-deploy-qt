@@ -32,22 +32,25 @@ export class Deployer
         const octokit = new gh.GitHub(token);
         const repogen = await this.downloadRepogen();
 
-        core.info("### Downloading and creating packages ###");
-        const packager = new Packager(octokit, this.pkgDir, config);
-        await packager.getSources();
-        await packager.createAllPackages(Platforms.platforms(excludes));
-
-        core.info("### Generating and uploading repositories ###");
-        const uploader = new Uploader(repogen, this.pkgDir, this.deployDir, config);
-        await uploader.generateRepos("linux", "x64", Platforms.linuxPlatforms(excludes));
-        await uploader.generateRepos("windows", "x86", Platforms.windowsPlatforms(excludes));
-        await uploader.generateRepos("mac", "x64", Platforms.macosPlatforms(excludes));
-
         core.info(` => Mounting sshfs`);
-        const sshfs = new Sshfs(this.deployDir + "-test");
+        const sshfs = new Sshfs(this.deployDir);
         await sshfs.init();
         await sshfs.mount(host, key, port);
-        await sshfs.unmount();
+
+        try {
+            core.info("### Downloading and creating packages ###");
+            const packager = new Packager(octokit, this.pkgDir, config);
+            await packager.getSources();
+            await packager.createAllPackages(Platforms.platforms(excludes));
+    
+            core.info("### Generating and uploading repositories ###");
+            const uploader = new Uploader(repogen, this.pkgDir, this.deployDir, config);
+            await uploader.generateRepos("linux", "x64", Platforms.linuxPlatforms(excludes));
+            await uploader.generateRepos("windows", "x86", Platforms.windowsPlatforms(excludes));
+            await uploader.generateRepos("mac", "x64", Platforms.macosPlatforms(excludes));
+        } finally {
+            await sshfs.unmount();
+        }
     }
 
     private createPackageConfig(qtVersion: string): PackageConfig | null {
