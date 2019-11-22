@@ -152,9 +152,7 @@ export class Packager
         syncQtArgs.push("-version", this.config.pkgVersion.split('-')[0]);
         syncQtArgs.push("-out", srcPath);
         syncQtArgs.push(srcPath);
-        await ex.exec("perl", syncQtArgs, {
-            silent: true
-        });
+        await ex.exec("perl", syncQtArgs, {silent: true});
     }
 
     public async createPlatformPackage(platform: string) {
@@ -329,9 +327,9 @@ Component.prototype.createOperations = function()
         const dataDir = path.join(pkgDir, "data", subDir);
         await io.mkdirP(dataDir);
         if (asZip)
-            await ex.exec("unzip", ["-qq", dlPath, "-d", dataDir]);
+            await ex.exec("unzip", ["-qq", dlPath, "-d", dataDir], {silent: true});
         else 
-            await ex.exec("tar", ["x", "-C", dataDir, "-f", dlPath]);
+            await ex.exec("tar", ["x", "-C", dataDir, "-f", dlPath], {silent: true});
         return dataDir;
     }
 

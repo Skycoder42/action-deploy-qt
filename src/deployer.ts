@@ -20,6 +20,7 @@ export class Deployer
     private readonly deployDir: string = "deploy";
 
     public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string) {
+        core.debug(`token: ${token.length}, host: ${host.length}, key: ${key.length}, port: ${port.length}`);
         // generate PackageConfig
         const config = this.createPackageConfig(qtVersion);
         if (!config)

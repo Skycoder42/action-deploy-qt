@@ -37,19 +37,14 @@ export class Uploader
         const realDepDir = path.join(this.deployDir, fullHost, `qt${this.config.qtVersion.replace(/\./g, "")}`);
         await io.mkdirP(realDepDir);
         let pkgList: string[] = [this.config.pkgBase];
-        core.debug(`       >> Adding package ${this.config.pkgBase}`);
-        for (let platform of platforms) {
-            const dPkg = `${this.config.pkgBase}.${Platforms.packagePlatform(platform)}`;
-            core.debug(`       >> Adding package ${dPkg}`);
-            pkgList.push(dPkg);
-        }
+        for (let platform of platforms)
+            pkgList.push(`${this.config.pkgBase}.${Platforms.packagePlatform(platform)}`);
 
-        core.debug("       >> Running repogen");
         await ex.exec(this.repogen, [
             "--update-new-components",
             "-p", this.pkgDir,
             "-i", pkgList.join(","),
-            this.deployDir
+            realDepDir
         ]);
     }
 

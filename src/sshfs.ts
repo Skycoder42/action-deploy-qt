@@ -21,6 +21,7 @@ export class Sshfs
 
     public async mount(host: string, key: string, port: string) {
         // write key and config
+        core.debug(`host: ${host.length}, key: ${key.length}, port: ${port.length}`);
         core.info("    -> writing keyfile");
         const sshKey = path.join(String(process.env.GITHUB_WORKSPACE), "ssh-key");
         await fs.writeFile(sshKey, `-----BEGIN OPENSSH PRIVATE KEY-----
@@ -44,6 +45,6 @@ ${key}
     public async unmount() {
         core.info("    -> Unounting");
         const fusermount = await io.which("fusermount", true);
-        await ex.exec(fusermount, ["-u", this.mountPath]);
+        await ex.exec(fusermount, ["-u", this.mountPath], {silent: true});
     }
 }
