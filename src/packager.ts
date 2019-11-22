@@ -146,13 +146,17 @@ export class Packager
         core.info("    -> Downloading syncqt.pl");
         const syncQt = await tc.downloadTool(`https://code.qt.io/cgit/qt/qtbase.git/plain/bin/syncqt.pl?h=${this.config.qtVersion}`);
         core.info("    -> Running syncqt.pl");
-        let syncQtArgs: string[] = [syncQt];
-        for (let mod of this.config.config!.modules)
-            syncQtArgs.push("-module", mod);
-        syncQtArgs.push("-version", this.config.pkgVersion.split('-')[0]);
-        syncQtArgs.push("-out", srcPath);
-        syncQtArgs.push(srcPath);
-        await ex.exec("perl", syncQtArgs);
+        const perl = await io.which("perl", true);
+        for (let mod of this.config.config!.modules) {
+            core.debug(`       >> Creating headers for ${mod}`);
+            await ex.exec(perl, [
+                syncQt,
+                "-module", mod,
+                "-version", this.config.pkgVersion.split('-')[0],
+                "-outdir", srcPath,
+                srcPath
+            ]);
+        }
     }
 
     public async createPlatformPackage(platform: string) {
