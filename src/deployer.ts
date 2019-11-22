@@ -20,7 +20,6 @@ export class Deployer
     private readonly deployDir: string = "deploy";
 
     public async run(token: string, qtVersion: string, excludes: string, host: string, key: string, port: string) {
-        core.debug(`ssh-key newlines: ${key.split('\n').length}`);
         // generate PackageConfig
         const config = this.createPackageConfig(qtVersion);
         if (!config)

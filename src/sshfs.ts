@@ -30,7 +30,6 @@ export class Sshfs
         const sshfs = await io.which("sshfs", true);
         let sshfsArgs: string[] = [
             host, this.mountPath,
-            "-o", "dir_cache=yes",
             "-o", `IdentityFile=${sshKey}`
         ];
         if (port)
