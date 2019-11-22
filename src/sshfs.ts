@@ -33,7 +33,7 @@ export class Sshfs
             host, this.mountPath,
             "-o", "StrictHostKeyChecking=no",
             "-o", `IdentityFile=${sshKey}`,
-            "-d", "-v"
+            "-d"
         ];
         if (port)
             sshfsArgs.push("-p", port);
