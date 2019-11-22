@@ -34,7 +34,7 @@ export class Sshfs
             "-o", `IdentityFile=${sshKey}`
         ];
         if (port)
-            sshfsArgs.push("-P", port);
+            sshfsArgs.push("-p", port);
         await ex.exec(sshfs, sshfsArgs);
     }
 
