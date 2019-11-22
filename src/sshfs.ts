@@ -23,10 +23,7 @@ export class Sshfs
         // write key and config
         core.info("    -> writing keyfile");
         const sshKey = path.join(String(process.env.GITHUB_WORKSPACE), "ssh-key");
-        await fs.writeFile(sshKey, `-----BEGIN OPENSSH PRIVATE KEY-----
-${key}
------END OPENSSH PRIVATE KEY-----
-`);
+        await fs.writeFile(sshKey, key);
 
         // mount
         core.info("    -> Mounting");
