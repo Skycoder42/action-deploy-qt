@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
@@ -63,7 +64,8 @@ export class Deployer
             qtVersion: qtVersion,
             qtVid: qtVid,
             pkgBase: `qt.qt5.${qtVid}.${gh.context.repo.owner.toLowerCase()}.${gh.context.repo.repo.substr(2).toLowerCase()}`,
-            config: null
+            config: null,
+            tmpDir: this.initTempDir(os.platform())
         };
     }
 
@@ -88,4 +90,22 @@ export class Deployer
 
         return repogen;
     }
+
+	private initTempDir(platform: NodeJS.Platform): string {
+		let tempDirectory: string = process.env['RUNNER_TEMP'] || ''
+		if (!tempDirectory) {
+			let baseLocation: string
+			if (platform ==  "win32") {
+				// On windows use the USERPROFILE env variable
+				baseLocation = process.env['USERPROFILE'] || 'C:\\'
+			} else {
+				if (platform === 'darwin')
+					baseLocation = '/Users'
+				else
+					baseLocation = '/home'
+			}
+			tempDirectory = path.join(baseLocation, 'actions', 'temp')
+		}
+		return tempDirectory;
+	}
 }

@@ -28,6 +28,8 @@ export interface PackageConfig
     qtVid: string;
     pkgBase: string;
     config: Config | null;
+
+    tmpDir: string;
 }
 
 export class ConfigParser

@@ -1,10 +1,13 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as glob from 'glob';
+import * as crypto from 'crypto';
+import * as xml from 'xml2js';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as ex from '@actions/exec';
+import * as gh from '@actions/github';
 
 import { Platforms } from './platforms';
 import { PackageConfig } from './config';
@@ -46,6 +49,8 @@ export class Uploader
             "-i", pkgList.join(","),
             realDepDir
         ], {silent: true});
+
+        await this.createVersionPackage(fullHost, realDepDir);
     }
 
     private async prepareHostTools(host: string, platform: string, tools: string[], hostPlatform: string) {
@@ -91,6 +96,49 @@ export class Uploader
                     core.debug(`       >> Copied matching binary ${relPath}`);
                 }
             }
+        }
+    }
+
+    private async createVersionPackage(fullHost: string, depDir: string) {
+        const pkgName = `qt.qt5.${this.config.qtVid}.${gh.context.repo.owner.toLowerCase()}`;
+        const pkgDir = path.join(depDir, pkgName);
+        if (!fs.existsSync(pkgDir)) {
+            core.info(`    -> Generating root package for Qt ${this.config.qtVersion}`);
+
+            core.debug("       >> Creating meta 7z file");
+            const dummyDir = path.join(this.config.tmpDir, "root-deploy-dummy");
+            const metaPath = path.join(pkgDir, "1.0.0meta.7z");
+            await io.mkdirP(path.join(dummyDir, pkgName));
+            await ex.exec("7z", ["a", path.resolve(metaPath)], {
+                //silent: true,
+                cwd: dummyDir
+            });
+
+            core.debug("       >> Calculation hashsum");
+            let sha1 = crypto.createHash("sha1");
+            sha1.update(await fs.promises.readFile(metaPath));
+            const sha1sum = sha1.digest("hex");
+
+            core.debug("       >> Updating Updates.xml file");
+            const updPath = path.join(depDir, "Updates.xml");
+            let parser = new xml.Parser();
+            let data = await parser.parseStringPromise(await fs.promises.readFile(updPath));
+            let update = {
+                Name: pkgName,
+                DisplayName: `${gh.context.repo.owner} Qt ${this.config.qtVersion} modules`,
+                Version: "1.0.0",
+                ReleaseDate: new Date().toISOString().slice(0, 10),
+                Default: true,
+                UpdateFile: {
+                    CompressedSize: 0,
+                    OS: "Any",
+                    UncompressedSize: 0
+                },
+                SHA1: sha1sum
+            };
+            data.Updates.PackageUpdate.push(update);
+            let builder = new xml.Builder();
+            await fs.promises.writeFile(updPath, builder.buildObject(data));
         }
     }
 }
