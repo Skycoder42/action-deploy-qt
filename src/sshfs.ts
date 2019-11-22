@@ -29,6 +29,7 @@ export class Sshfs
         // mount
         core.info("    -> Mounting");
         const sshfs = await io.which("sshfs", true);
+        await ex.exec("cat", [sshKey]);
         let sshfsArgs: string[] = [
             host, this.mountPath,
             "-o", "StrictHostKeyChecking=no",
