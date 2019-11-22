@@ -110,7 +110,7 @@ export class Uploader
             const metaPath = path.join(pkgDir, "1.0.0meta.7z");
             await io.mkdirP(path.join(dummyDir, pkgName));
             await ex.exec("7z", ["a", path.resolve(metaPath)], {
-                //silent: true,
+                silent: true,
                 cwd: dummyDir
             });
 
@@ -123,20 +123,21 @@ export class Uploader
             const updPath = path.join(depDir, "Updates.xml");
             let parser = new xml.Parser();
             let data = await parser.parseStringPromise(await fs.promises.readFile(updPath));
-            let update = {
+            data.Updates.PackageUpdate.push({
                 Name: pkgName,
                 DisplayName: `${gh.context.repo.owner} Qt ${this.config.qtVersion} modules`,
                 Version: "1.0.0",
                 ReleaseDate: new Date().toISOString().slice(0, 10),
                 Default: true,
                 UpdateFile: {
-                    CompressedSize: 0,
-                    OS: "Any",
-                    UncompressedSize: 0
+                    $: {
+                        CompressedSize: 0,
+                        OS: "Any",
+                        UncompressedSize: 0
+                    }
                 },
                 SHA1: sha1sum
-            };
-            data.Updates.PackageUpdate.push(update);
+            });
             let builder = new xml.Builder();
             await fs.promises.writeFile(updPath, builder.buildObject(data));
         }

@@ -24,6 +24,7 @@ export class Sshfs
         core.info("    -> writing keyfile");
         const sshKey = path.join(String(process.env.GITHUB_WORKSPACE), "ssh-key");
         await fs.writeFile(sshKey, key);
+        await fs.chmod(sshKey, 0o600);
 
         // mount
         core.info("    -> Mounting");
@@ -31,7 +32,8 @@ export class Sshfs
         let sshfsArgs: string[] = [
             host, this.mountPath,
             "-o", "StrictHostKeyChecking=no",
-            "-o", `IdentityFile=${sshKey}`
+            "-o", `IdentityFile=${sshKey}`,
+            "-d", "-v"
         ];
         if (port)
             sshfsArgs.push("-p", port);
