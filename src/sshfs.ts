@@ -24,7 +24,7 @@ export class Sshfs
         // write key and config
         core.info("    -> writing keyfile");
         const sshKey = path.join(String(process.env.GITHUB_WORKSPACE), "ssh-key");
-        await fs.writeFile(sshKey, key, {mode: 0o600});
+        await fs.writeFile(sshKey, key + '\n', {mode: 0o600});
         core.debug(util.inspect(await fs.lstat(sshKey), {depth: Infinity, colors: true}));
 
         // mount
