@@ -33,7 +33,7 @@ export class Deployer
         const repogen = await this.downloadRepogen();
 
         core.info(` => Mounting sshfs`);
-        const sshfs = new Sshfs(this.deployDir);
+        const sshfs = new Sshfs(this.deployDir, config);
         await sshfs.init();
         await sshfs.mount(host, key, port);
 

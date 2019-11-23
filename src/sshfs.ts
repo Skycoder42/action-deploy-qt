@@ -1,17 +1,19 @@
 import * as path from 'path';
 import { promises as fs } from 'fs';
-import * as util from 'util';
 
 import * as core from '@actions/core';
 import * as io from '@actions/io';
 import * as ex from '@actions/exec';
+import { PackageConfig } from './config';
 
 export class Sshfs
 {
     private mountPath: string;
+    private config: PackageConfig;
 
-    constructor(mountPath: string) {
+    constructor(mountPath: string, config: PackageConfig) {
         this.mountPath = mountPath;
+        this.config = config;
     }
     
     public async init() {
@@ -23,9 +25,8 @@ export class Sshfs
     public async mount(host: string, key: string, port: string) {
         // write key and config
         core.info("    -> writing keyfile");
-        const sshKey = path.join(String(process.env.GITHUB_WORKSPACE), "ssh-key");
+        const sshKey = path.join(this.config.tmpDir, "ssh-key");
         await fs.writeFile(sshKey, key + '\n', {mode: 0o600});
-        core.debug(util.inspect(await fs.lstat(sshKey), {depth: Infinity, colors: true}));
 
         // mount
         core.info("    -> Mounting");
@@ -33,12 +34,12 @@ export class Sshfs
         let sshfsArgs: string[] = [
             host, this.mountPath,
             "-o", "StrictHostKeyChecking=no",
-            "-o", `IdentityFile=${sshKey}`,
-            "-d"
+            "-o", `IdentityFile=${sshKey}`
         ];
         if (port)
             sshfsArgs.push("-p", port);
-        await ex.exec(sshfs, sshfsArgs);
+        await ex.exec(sshfs, sshfsArgs, {silent: true});
+        await io.rmRF(sshKey);
     }
 
     public async unmount() {
