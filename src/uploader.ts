@@ -60,8 +60,8 @@ export class Uploader
         const pkgPlatform = Platforms.packagePlatform(platform);
         const pkgHostPlatform = Platforms.packagePlatform(hostPlatform);
         
-        const srcDir = path.join(this.pkgDir, `qt.qt5.${this.config.qtVid}.${pkgHostPlatform}`, "data");
-        const destDir = path.join(this.pkgDir, `qt.qt5.${this.config.qtVid}.${pkgPlatform}`, "data");
+        const srcDir = path.join(this.pkgDir, `${this.config.pkgBase}.${pkgHostPlatform}`, "data");
+        const destDir = path.join(this.pkgDir, `${this.config.pkgBase}.${pkgPlatform}`, "data");
         const bkpDir = destDir + ".bkp";
 
         if (!fs.existsSync(bkpDir)) {
