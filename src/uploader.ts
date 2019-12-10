@@ -51,7 +51,7 @@ export class Uploader
             realDepDir
         ], {silent: true});
 
-        await this.createVersionPackage(fullHost, realDepDir);
+        await this.createVersionPackage(realDepDir);
     }
 
     private async prepareHostTools(host: string, platform: string, tools: string[], hostPlatform: string) {
@@ -80,7 +80,7 @@ export class Uploader
         }
 
         const toolHost = Platforms.hostOs(platform);
-        if (toolHost && toolHost != host)
+        if (!toolHost || toolHost == host)
             core.debug("       >> Using original host build");
         else {
             for (let tool of tools) {
@@ -100,7 +100,7 @@ export class Uploader
         }
     }
 
-    private async createVersionPackage(fullHost: string, depDir: string) {
+    private async createVersionPackage(depDir: string) {
         const pkgName = `qt.qt5.${this.config.qtVid}.${gh.context.repo.owner.toLowerCase()}`;
         const pkgDir = path.join(depDir, pkgName);
         if (!fs.existsSync(pkgDir)) {
