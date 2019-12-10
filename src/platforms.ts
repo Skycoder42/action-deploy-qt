@@ -123,7 +123,7 @@ export class Platforms {
             return null;
     }
 
-    private static isBasic(platform: string): boolean {
+    public static isBasic(platform: string): boolean {
         return platform == "src" ||
                platform == "doc" ||
                platform == "examples"

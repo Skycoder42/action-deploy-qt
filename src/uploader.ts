@@ -33,7 +33,8 @@ export class Uploader
         if (this.config.config!.hostbuilds) {
             const pHost = Platforms.hostToolPlatform(host, platforms);
             for (let platform of platforms)
-                await this.prepareHostTools(host, platform, this.config.config!.hostbuilds, pHost);
+                if (!Platforms.isBasic(platform))
+                    await this.prepareHostTools(host, platform, this.config.config!.hostbuilds, pHost);
         }
 
         core.info("    -> Generating repositories");
