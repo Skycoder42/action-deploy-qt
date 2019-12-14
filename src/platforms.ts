@@ -3,10 +3,7 @@ export class Platforms {
         const pData: string[] = [
             "src",
             "gcc_64",
-            "android_arm64_v8a",
-            "android_x86_64",
-            "android_armv7",
-            "android_x86",
+            "android",
             "wasm_32",
             "msvc2017_64",
             "msvc2017",
@@ -78,9 +75,7 @@ export class Platforms {
 
     public static patchString(platform: string): string {
         const embeddedKeys: string[] = [
-            "android_arm64_v8a",
-            "android_armv7",
-            "android_x86",
+            "android",
             "ios",
             "winrt_x86_msvc2017",
             "winrt_x64_msvc2017",
