@@ -105,6 +105,7 @@ export class Uploader
         const pkgDir = path.join(depDir, pkgName);
         if (!fs.existsSync(pkgDir)) {
             core.info(`    -> Generating root package for Qt ${this.config.qtVersion}`);
+            await io.mkdirP(pkgDir);
 
             core.debug("       >> Creating meta 7z file");
             const dummyDir = path.join(this.config.tmpDir, "root-deploy-dummy");
