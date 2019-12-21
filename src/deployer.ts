@@ -87,7 +87,7 @@ export class Deployer
             "--internal"
         ]);
 
-        const repogen = path.join("qtifw", "Tools", "QtInstallerFramework", "3.1", "bin", "repogen");
+        const repogen = path.join("qtifw", "Tools", "QtInstallerFramework", this.qtIfwVer.substr(0, 3), "bin", "repogen");
         if (!fs.existsSync(repogen))
             throw Error(`Unable to find repogen after aqt install with path: ${repogen}`);
 
