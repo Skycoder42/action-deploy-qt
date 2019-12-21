@@ -16,7 +16,7 @@ import { Sshfs } from './sshfs';
 export class Deployer
 {
     // constants
-    private readonly qtIfwVer: string = "3.1.1";
+    private readonly qtIfwVer: string = "3.2.0";
     private readonly pkgDir: string = "packages";
     private readonly deployDir: string = "deploy";
 
@@ -82,7 +82,7 @@ export class Deployer
         core.info(`    -> Installing QtIfW verion ${this.qtIfwVer}`);
         await ex.exec(python, ["-m", "aqt",
             "tool",
-            "linux", "tools_ifw", this.qtIfwVer, "qt.tools.ifw.31",
+            "linux", "tools_ifw", this.qtIfwVer, `qt.tools.ifw.${this.qtIfwVer.replace(/\./g, "").substr(0, 2)}`,
             "--outputdir", "qtifw",
             "--internal"
         ]);
