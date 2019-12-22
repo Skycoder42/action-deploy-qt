@@ -75,6 +75,9 @@ export class Deployer
     private async downloadRepogen(): Promise<string> {
         core.info(` => Getting QtIFW repogen`);
 
+        core.info("    -> Installing repogen dependencies");
+        await ex.exec("apt-get", ["-qq", "install", "libgl1-mesa-dev", "libxkbcommon-x11-0"]);
+
         core.info("    -> Installing aqtinstall");
         const python = await io.which("python", true);
         await ex.exec(python, ["-m", "pip", "install", "aqtinstall"]);
