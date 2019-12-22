@@ -49,7 +49,7 @@ export class Uploader
             "-p", this.pkgDir,
             "-i", pkgList.join(","),
             realDepDir
-        ], {silent: true});
+        ]/*, {silent: true}*/);
 
         await this.createVersionPackage(realDepDir);
     }
