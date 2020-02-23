@@ -291,7 +291,7 @@ Component.prototype.createOperations = function()
 }
 `);
 
-        await this.getAsset("doc", pkgDir, "Docs");
+        await this.getAsset("doc", pkgDir, `Docs/Qt-${this.config.qtVersion}`);
     }
 
     public async createExamplePackage() {
@@ -315,7 +315,7 @@ Component.prototype.createOperations = function()
 </Package>
 `);
 
-        await this.getAsset("examples", pkgDir, "Examples");
+        await this.getAsset("examples", pkgDir, `Examples/Qt-${this.config.qtVersion}`);
     }
 
     private async getAsset(platform: string, pkgDir: string, subDir: string): Promise<string> {
