@@ -1,9 +1,9 @@
 {
-  "name": "setup-qt",
+  "name": "deploy-qt",
   "version": "1.0.0",
   "private": true,
-  "description": "setup Qt action",
-  "main": "lib/setup-qt.js",
+  "description": "deploy Qt action",
+  "main": "lib/deploy-qt.js",
   "scripts": {
     "build": "tsc"
   },
@@ -16,24 +16,33 @@
     "qt",
     "setup"
   ],
-  "author": "GitHub",
+  "author": "Skycoder42",
   "license": "BSD-3-CLAUSE",
   "dependencies": {
     "@actions/core": "^1.2.2",
     "@actions/exec": "^1.0.3",
-    "@actions/github": "^2.1.1",
+    "@actions/github": "^3.0.0",
     "@actions/io": "^1.0.2",
     "@actions/tool-cache": "^1.3.1",
     "glob": "^7.1.6",
-    "replace-in-file": "^5.0.2",
-    "xml2js": "^0.4.23",
-    "semver": "^7.1.3"
+    "husky": "^4.2.5",
+    "replace-in-file": "^6.1.0",
+    "semver": "^7.1.3",
+    "xml2js": "^0.4.23"
   },
   "devDependencies": {
-    "@types/node": "^13.7.7",
     "@types/glob": "^7.1.1",
-    "@types/xml2js": "^0.4.5",
+    "@types/node": "^14.0.14",
     "@types/semver": "^7.1.0",
+    "@types/xml2js": "^0.4.5",
+    "prettier": "^2.0.5",
+    "pretty-quick": "^2.0.1",
     "typescript": "^3.8.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "sh ./pre-commit.sh",
+      "post-commit": "yarn install"
+    }
   }
 }
